@@ -14,8 +14,8 @@ namespace Netling.Tests
             var httpWorker = new HttpWorker(client, new Uri("http://netling.test", UriKind.Absolute));
 
             var (length, statusCode) = httpWorker.Send();
-            Assert.AreEqual(200, statusCode);
-            Assert.AreEqual(132, length);
+            Assert.That(statusCode, Is.EqualTo(200));
+            Assert.That(length, Is.EqualTo(132));
         }
         
         [Test]
@@ -25,8 +25,8 @@ namespace Netling.Tests
             var httpWorker = new HttpWorker(client, new Uri("http://netling.test", UriKind.Absolute));
 
             var (length, statusCode) = httpWorker.Send();
-            Assert.AreEqual(200, statusCode);
-            Assert.AreEqual(132, length);
+            Assert.That(statusCode, Is.EqualTo(200));
+            Assert.That(length, Is.EqualTo(132));
         }
     }
 }

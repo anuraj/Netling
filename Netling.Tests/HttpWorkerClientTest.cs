@@ -28,8 +28,8 @@ namespace Netling.Tests
             var length = client.Read(buffer);
             var response = Encoding.UTF8.GetString(buffer.ToArray(), 0, length);
 
-            Assert.AreEqual(132, length);
-            Assert.AreEqual(_response, response);
+            Assert.That(length, Is.EqualTo(132));
+            Assert.That(response, Is.EqualTo(_response));
         }
 
         [Test]
@@ -43,8 +43,8 @@ namespace Netling.Tests
             length += client.Read(buffer.Slice(length));
             var response = Encoding.UTF8.GetString(buffer.ToArray(), 0, length);
 
-            Assert.AreEqual(132, length);
-            Assert.AreEqual(_response, response);
+            Assert.That(length, Is.EqualTo(132));
+            Assert.That(response, Is.EqualTo(_response));
         }
     }
 }
