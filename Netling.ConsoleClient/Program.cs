@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
 using CommandLine.Options;
+
 using Netling.Core;
 using Netling.Core.Models;
 using Netling.Core.SocketWorker;
@@ -20,12 +23,22 @@ namespace Netling.ConsoleClient
             var threads = 1;
             var duration = 10;
             int? count = null;
+            var headers = new Dictionary<string, string>();
 
             var p = new OptionSet()
             {
                 {"t|threads=", (int v) => threads = v},
                 {"d|duration=", (int v) => duration = v},
-                {"c|count=", (int? v) => count = v}
+                {"c|count=", (int? v) => count = v},
+                {"h|headers=", "Specify the headers as key-value pairs (format: key=value).", kv =>
+                    {
+                        var parts = kv.Split('=', 2);
+                        if (parts.Length == 2)
+                        {
+                            headers[parts[0].Trim()] = parts[1].Trim();
+                        }
+                    }
+                }
             };
 
             var extraArgs = p.Parse(args);
@@ -38,11 +51,11 @@ namespace Netling.ConsoleClient
             }
             else if (url != null && count.HasValue)
             {
-                RunWithCount(uri, count.Value).Wait();
+                RunWithCount(uri, count.Value, headers).Wait();
             }
             else if (url != null)
             {
-                RunWithDuration(uri, threads, TimeSpan.FromSeconds(duration)).Wait();
+                RunWithDuration(uri, threads, TimeSpan.FromSeconds(duration), headers).Wait();
             }
             else
             {
@@ -55,22 +68,22 @@ namespace Netling.ConsoleClient
             Console.WriteLine(HelpString);
         }
 
-        private static Task RunWithCount(Uri uri, int count)
+        private static Task RunWithCount(Uri uri, int count, Dictionary<string, string> headers = null)
         {
             Console.WriteLine(StartRunWithCountString, count, uri);
-            return Run(uri, 1, TimeSpan.MaxValue, count);
+            return Run(uri, 1, TimeSpan.MaxValue, count, headers);
         }
 
-        private static Task RunWithDuration(Uri uri, int threads, TimeSpan duration)
+        private static Task RunWithDuration(Uri uri, int threads, TimeSpan duration, Dictionary<string, string> headers = null)
         {
             Console.WriteLine(StartRunWithDurationString, duration.TotalSeconds, uri, threads);
-            return Run(uri, threads, duration, null);
+            return Run(uri, threads, duration, null, headers);
         }
 
-        private static async Task Run(Uri uri, int threads, TimeSpan duration, int? count)
+        private static async Task Run(Uri uri, int threads, TimeSpan duration, int? count, Dictionary<string, string> headers = null)
         {
             WorkerResult result;
-            var worker = new Worker(new SocketWorkerJob(uri));
+            var worker = new Worker(new SocketWorkerJob(uri, headers));
 
             if (count.HasValue)
             {
@@ -81,11 +94,11 @@ namespace Netling.ConsoleClient
                 result = await worker.Run(uri.ToString(), threads, duration, new CancellationToken());
             }
 
-            Console.WriteLine(ResultString, 
+            Console.WriteLine(ResultString,
                 result.Count,
                 result.Elapsed.TotalSeconds,
-                result.RequestsPerSecond, 
-                result.Bandwidth, 
+                result.RequestsPerSecond,
+                result.Bandwidth,
                 result.Errors,
                 result.Median,
                 result.StdDev,
@@ -122,17 +135,18 @@ namespace Netling.ConsoleClient
         }
 
         private const string HelpString = @"
-Usage: netling [-t threads] [-d duration] url
+Usage: netling [-t threads] [-d duration] [-h headers] url
 
 Options:
     -t count        Number of threads to spawn.
     -d count        Duration of the run in seconds.
     -c count        Amount of requests to send on a single thread.
-
+    -h headers      Headers to send with the request - Example: -h Accept=text/html
 Examples:
     netling http://localhost:5000/
     netling http://localhost:5000/ -t 8 -d 60
     netling http://localhost:5000/ -c 3000
+    netling http://localhost:5000/ -c 3000 -h Accept=text/html
 ";
 
         private const string StartRunWithCountString = @"
